@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color by Number</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1565C0;--blue-lt:#E3F2FD;--blue-mid:#90CAF9;
+  --bg:#F0F4FF;--surface:#fff;--border:#DDEEFF;
+  --text:#1a1a2e;--muted:#5a7a9a;--radius:10px;
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.topbar{background:var(--blue);padding:0 20px;height:50px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.topbar-title{color:#fff;font-size:16px;font-weight:700;letter-spacing:.3px}
+.topbar-spacer{flex:1}
+.topbar-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:12px;padding:5px 14px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s}
+.topbar-btn:hover{background:rgba(255,255,255,.28)}
+.topbar-btn:disabled{opacity:.4;cursor:default}
+
+/* LAYOUT */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sb-section{padding:14px 14px 10px;border-bottom:1px solid var(--border)}
+.sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--blue);margin-bottom:10px}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--blue-mid);border-radius:var(--radius);background:var(--blue-lt);padding:16px 10px;text-align:center;cursor:pointer;transition:background .15s}
+.upload-zone:hover{background:#BBDEFB}
+.upload-zone p{font-size:11px;color:var(--muted);margin-top:5px}
+.upload-zone input{display:none}
+.thumb{width:100%;border-radius:6px;margin-top:8px;border:1px solid var(--border);display:none}
+
+/* PARAMS */
+.ctrl-row{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+.ctrl-row label{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+.ctrl-row label span{font-weight:700;color:var(--blue)}
+input[type=range]{width:100%;accent-color:var(--blue)}
+
+.btn-primary{background:var(--blue);color:#fff;border:none;border-radius:var(--radius);padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;width:100%;transition:background .15s;margin-top:4px}
+.btn-primary:hover{background:#0D47A1}
+.btn-primary:disabled{opacity:.5;cursor:default}
+
+/* COLOR PICKER */
+.search-row{display:flex;gap:6px;margin-bottom:10px}
+.hex-wrap{display:flex;align-items:center;gap:6px;flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0 8px;height:32px}
+.hex-wrap input{border:none;background:transparent;outline:none;font-size:12px;font-family:monospace;color:var(--text);flex:1;width:0}
+.dot-preview{width:20px;height:20px;border-radius:4px;border:1px solid var(--border);flex-shrink:0}
+.search-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:0 10px;height:32px;font-size:12px;cursor:pointer;white-space:nowrap}
+
+.base-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px}
+.base-chip{border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.base-chip:hover{border-color:var(--blue-mid)}
+.base-chip.active{border-color:var(--blue);border-width:2px}
+.base-chip .sw{height:28px}
+.base-chip .lbl{font-size:9px;text-align:center;padding:2px;color:var(--muted);background:var(--surface);border-top:1px solid var(--border)}
+
+.nb-label{font-size:10px;color:var(--muted);margin-bottom:5px;display:none}
+.nb-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:10px;min-height:0}
+.nb-chip{border-radius:5px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s;position:relative}
+.nb-chip:hover{border-color:var(--blue-mid)}
+.nb-chip.active{border-color:var(--blue)}
+.nb-chip.saved::after{content:'';position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--blue)}
+.nb-chip .nsw{height:26px}
+.nb-chip .nhex{font-size:8px;text-align:center;padding:1px;color:var(--muted);background:var(--surface);font-family:monospace}
+
+.color-name{font-size:11px;color:var(--muted);text-align:center;margin-bottom:6px;min-height:14px}
+
+/* SELECTED COLOR */
+.selected-color-row{display:flex;align-items:center;gap:8px;margin-top:2px}
+.selected-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);flex-shrink:0}
+.selected-info{flex:1}
+.selected-info .si-name{font-size:12px;font-weight:600;color:var(--text)}
+.selected-info .si-hex{font-size:11px;font-family:monospace;color:var(--muted)}
+
+/* SAVED */
+.saved-grid{display:flex;flex-wrap:wrap;gap:4px}
+.saved-pill{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 8px 2px 3px;cursor:pointer}
+.saved-pill .sp-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0}
+.saved-pill .sp-hex{font-size:10px;font-family:monospace;color:var(--muted)}
+.saved-pill .sp-del{font-size:13px;color:var(--muted);margin-left:2px;line-height:1}
+.saved-pill:hover .sp-del{color:#e53935}
+.empty-saved{font-size:11px;color:var(--muted)}
+.save-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;margin-top:6px;width:100%}
+.save-btn:hover{background:var(--blue-lt);color:var(--blue);border-color:var(--blue-mid)}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.tool-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .15s}
+.tool-btn:hover{background:var(--blue-lt);border-color:var(--blue-mid)}
+.tool-btn.active{background:var(--blue);border-color:var(--blue)}
+.tool-sep{width:1px;height:20px;background:var(--border)}
+.brush-wrap{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.brush-wrap input{width:60px;accent-color:var(--blue)}
+
+/* MAIN CANVAS AREA */
+.views{display:flex;flex:1;overflow:hidden;min-height:0}
+.resizer{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative;display:flex;align-items:center;justify-content:center}
+.resizer:hover,.resizer.dragging{background:var(--blue-mid)}
+.resizer::after{content:'';position:absolute;width:1px;height:32px;background:var(--muted);border-radius:2px;opacity:.4}
+.view-card{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;min-height:0}
+.view-card:last-child{border-right:none}
+.view-header{padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:7px;flex-shrink:0;background:var(--surface)}
+.view-header .dot{width:8px;height:8px;border-radius:50%;background:var(--blue-mid)}
+.view-body{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg);overflow:hidden;padding:12px;min-height:0}
+.view-body img{max-width:100%;max-height:100%;border-radius:6px;object-fit:contain;display:block}
+.placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:12px;text-align:center;opacity:.5}
+.placeholder svg{width:40px;height:40px}
+
+#coloringCanvas{max-width:100%;max-height:100%;cursor:crosshair;display:none;border-radius:6px}
+
+/* LOADING */
+.spinner{width:32px;height:32px;border:3px solid var(--blue-lt);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;font-size:12px;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+
+.info-pill{display:inline-block;background:var(--blue-lt);color:var(--blue);font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;border:1px solid var(--blue-mid)}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+  <span class="topbar-title">Color by Number</span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-btn" id="btnDownload" disabled onclick="downloadResult()">
+    ⬇ Tải về
+  </button>
+</div>
+
+<div class="body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Upload + params -->
+    <div class="sb-section">
+      <div class="sec-label">Ảnh đầu vào</div>
+      <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:var(--blue)"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12l-4 4m4-4l4 4"/></svg>
+        <p>Click hoặc kéo thả ảnh</p>
+        <input type="file" id="fileInput" accept="image/*" onchange="onFileChange(event)">
+      </div>
+      <img id="thumbImg" class="thumb" alt="preview">
+    </div>
+
+    <div class="sb-section">
+      <div class="sec-label">Tham số</div>
+      <div class="ctrl-row">
+        <label>Scale <span id="vScale">300</span></label>
+        <input type="range" min="50" max="1000" step="10" value="300" oninput="document.getElementById('vScale').textContent=this.value" id="rScale">
+      </div>
+      <div class="ctrl-row">
+        <label>Sigma <span id="vSigma">1.2</span></label>
+        <input type="range" min="0.1" max="3" step="0.1" value="1.2" oninput="document.getElementById('vSigma').textContent=(+this.value).toFixed(1)" id="rSigma">
+      </div>
+      <div class="ctrl-row">
+        <label>Min size <span id="vMin">500</span></label>
+        <input type="range" min="50" max="2000" step="50" value="500" oninput="document.getElementById('vMin').textContent=this.value" id="rMin">
+      </div>
+      <button class="btn-primary" id="btnProcess" disabled onclick="processImage()">▶ Tạo coloring page</button>
+    </div>
+
+    <!-- Selected color indicator -->
+    <div class="sb-section" style="padding-bottom:12px">
+      <div class="sec-label">Màu đang chọn</div>
+      <div class="selected-color-row">
+        <div class="selected-dot" id="selectedDot" style="background:#1565C0"></div>
+        <div class="selected-info">
+          <div class="si-name" id="selectedName">Science Blue</div>
+          <div class="si-hex" id="selectedHex">#1565C0</div>
+        </div>
+        <button class="save-btn" style="width:auto;margin:0;padding:4px 10px" onclick="saveCurrentColor()">💾 Lưu</button>
+      </div>
+    </div>
+
+    <!-- Color picker -->
+    <div class="sb-section">
+      <div class="sec-label">Tìm màu</div>
+      <div class="search-row">
+        <div class="hex-wrap">
+          <div class="dot-preview" id="dotPreview" style="background:#1565C0"></div>
+          <input type="text" id="hexInput" placeholder="1565C0" maxlength="7" oninput="onHexInput(this)">
+        </div>
+        <button class="search-btn" onclick="searchHex()">Tìm</button>
+      </div>
+      <div class="color-name" id="colorNameLabel">Science Blue</div>
+
+      <div class="sec-label">12 màu cơ bản</div>
+      <div class="base-grid" id="baseGrid"></div>
+
+      <div class="nb-label" id="nbLabel">Màu lân cận</div>
+      <div class="nb-grid" id="nbGrid"></div>
+    </div>
+
+    <!-- Saved -->
+    <div class="sb-section" style="flex:1">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="sec-label" style="margin:0">Đã lưu <span id="savedCount" style="color:var(--muted);font-weight:400"></span></div>
+        <button onclick="clearAllSaved()" style="font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer">Xoá tất cả</button>
+      </div>
+      <div class="saved-grid" id="savedGrid">
+        <span class="empty-saved">Chưa có màu nào</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+
+      <div id="toolBrush" class="tool-btn active" title="Brush" onclick="setTool('brush')">✏️</div>
+      <div class="tool-btn" id="toolEraser" title="Tẩy" onclick="setTool('eraser')">🧹</div>
+      <div class="tool-sep"></div>
+      <div class="brush-wrap">
+        <span>Cỡ bút</span>
+        <input type="range" min="2" max="40" step="1" value="10" id="brushSize" oninput="document.getElementById('brushVal').textContent=this.value">
+        <span id="brushVal">10</span>
+      </div>
+      <div class="tool-sep"></div>
+      <div class="tool-btn" title="Hoàn tác" onclick="undo()">↩️</div>
+      <div class="tool-btn" title="Xoá" onclick="clearCanvas()">🗑️</div>
+      <div class="tool-sep"></div>
+      <span id="regionInfo" style="font-size:11px;color:var(--muted)"></span>
+      <div class="tool-sep" id="progressSep" style="display:none"></div>
+      <div id="progressWrap" style="display:none;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Tiến độ</span>
+        <div style="width:120px;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+          <div id="progressBar" style="height:100%;width:0%;background:var(--blue);border-radius:4px;transition:width .3s"></div>
+        </div>
+        <span id="progressPct" style="font-size:12px;font-weight:700;color:var(--blue);min-width:36px">0%</span>
+      </div>
+    </div>
+
+    <!-- Views -->
+    <div class="views" id="viewsContainer">
+      <!-- Ảnh phân vùng -->
+      <div class="view-card" id="leftPanel" style="flex:1;min-width:100px">
+        <div class="view-header">
+          <div class="dot"></div>
+          <span id="leftTitle">Ảnh gốc</span>
+        </div>
+        <div class="view-body">
+          <div class="placeholder" id="phLeft">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <span>Upload ảnh để bắt đầu</span>
+          </div>
+          <div class="spinner" id="spinnerLeft"></div>
+          <img id="imgLeft" style="display:none" alt="segmented">
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="resizer" id="resizer"></div>
+
+      <!-- Coloring canvas -->
+      <div class="view-card" id="rightPanel" style="flex:1;min-width:100px">
+        <div class="view-header">
+          <div class="dot" style="background:#A5D6A7"></div>
+          <span>Tô màu</span>
+        </div>
+        <div class="view-body" id="rightBody">
+          <div class="placeholder" id="phRight">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Coloring page sẽ hiện ở đây</span>
+          </div>
+          <div class="spinner" id="spinnerRight"></div>
+          <canvas id="coloringCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+const STORAGE_KEY = 'cbn_saved_v2';
+const BASE_COLORS = [
+  {name:'Blue',hex:'0000FF'},{name:'Orange',hex:'FF8000'},
+  {name:'Green',hex:'008000'},{name:'Brown',hex:'8B4513'},
+  {name:'Grey',hex:'808080'},{name:'White',hex:'FFFFFF'},
+  {name:'Red',hex:'FF0000'},{name:'Black',hex:'000000'},
+  {name:'Yellow',hex:'FFFF00'},{name:'Violet',hex:'800080'},
+  {name:'Pink',hex:'FF69B4'},{name:'Aqua',hex:'00FFFF'},
+];
+
+let currentTool = 'brush';
+let currentColor = '#1565C0';
+let currentColorName = 'Science Blue';
+let coloringImage = null;
+let undoStack = [];
+let isDrawing = false;
+let savedColors = [];
+let labelMatrix = null;   // (H x W) — index vùng từng pixel
+
+const canvas = document.getElementById('coloringCanvas');
+const ctx = canvas.getContext('2d');
+
+// ── INIT ──
+function init() {
+  try { savedColors = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { savedColors = []; }
+  renderBase();
+  renderSaved();
+}
+
+// ── COLOR SELECTION ──
+function selectColor(hex, name) {
+  if (!hex.startsWith('#')) hex = '#' + hex;
+  currentColor = hex;
+  currentColorName = name || hex;
+  document.getElementById('selectedDot').style.background = hex;
+  document.getElementById('selectedName').textContent = currentColorName;
+  document.getElementById('selectedHex').textContent = hex;
+  document.getElementById('dotPreview').style.background = hex;
+  document.getElementById('hexInput').value = hex.replace('#','');
+}
+
+function onHexInput(input) {
+  let val = input.value.replace('#','');
+  if (/^[0-9A-Fa-f]{6}$/.test(val)) {
+    document.getElementById('dotPreview').style.background = '#'+val;
+  }
+}
+
+async function searchHex() {
+  let val = document.getElementById('hexInput').value.replace('#','').trim();
+  if (!/^[0-9A-Fa-f]{3,6}$/.test(val)) { showToast('Mã hex không hợp lệ'); return; }
+  document.getElementById('colorNameLabel').textContent = 'Đang tìm...';
+  try {
+    const r = await fetch(`https://www.thecolorapi.com/id?hex=${val}`);
+    const d = await r.json();
+    const name = d.name.value;
+    document.getElementById('colorNameLabel').textContent = name;
+    selectColor(val, name);
+    fetchNeighbors(val);
+  } catch(e) { document.getElementById('colorNameLabel').textContent = 'Lỗi API'; }
+}
+
+async function selectBase(i) {
+  document.querySelectorAll('.base-chip').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.base-chip[data-idx="${i}"]`).classList.add('active');
+  document.querySelectorAll('.nb-chip').forEach(el => el.classList.remove('active'));
+  const c = BASE_COLORS[i];
+  selectColor(c.hex, c.name);
+  document.getElementById('colorNameLabel').textContent = c.name;
+  fetchNeighbors(c.hex);
+}
+
+async function fetchNeighbors(hex) {
+  hex = hex.replace('#','');
+  document.getElementById('nbLabel').style.display = 'block';
+  document.getElementById('nbGrid').innerHTML = '<div style="font-size:10px;color:var(--muted);padding:4px">Đang tải...</div>';
+
+  // Tự tính 10 màu lân cận bằng cách thay đổi L và S trong HSL
+  const neighbors = generateNeighbors(hex);
+
+  // Gọi API để lấy tên màu (parallel)
+  const results = await Promise.all(neighbors.map(async h => {
+    try {
+      const r = await fetch(`https://www.thecolorapi.com/id?hex=${h}`);
+      const d = await r.json();
+      return { hex: h, name: d.name.value };
+    } catch {
+      return { hex: h, name: '#' + h };
+    }
+  }));
+
+  renderNeighbors(results.map(c => ({
+    hex: { value: '#' + c.hex },
+    name: { value: c.name }
+  })));
+}
+
+function generateNeighbors(hex) {
+  // Chuyển hex → HSL
+  const r = parseInt(hex.slice(0,2),16)/255;
+  const g = parseInt(hex.slice(2,4),16)/255;
+  const b = parseInt(hex.slice(4,6),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (d > 0) {
+    s = d / (1 - Math.abs(2*l - 1));
+    if (max === r) h = ((g - b)/d + 6) % 6;
+    else if (max === g) h = (b - r)/d + 2;
+    else h = (r - g)/d + 4;
+    h = h / 6;
+  }
+
+  // Sinh 10 màu: thay đổi L ±10..±30%, S ±10..±20%
+  const variants = [
+    [h, s,        l + 0.12],
+    [h, s,        l + 0.22],
+    [h, s,        l + 0.32],
+    [h, s,        l - 0.12],
+    [h, s,        l - 0.22],
+    [h, s * 0.7,  l + 0.15],
+    [h, s * 0.5,  l + 0.25],
+    [h, Math.min(1, s * 1.2), l - 0.10],
+    [h, Math.min(1, s * 1.3), l - 0.20],
+    [h, s,        l - 0.32],
+  ];
+
+  return variants.map(([hh, ss, ll]) => {
+    ll = Math.max(0.05, Math.min(0.95, ll));
+    ss = Math.max(0,    Math.min(1,    ss));
+    // HSL → RGB
+    const c2 = (1 - Math.abs(2*ll - 1)) * ss;
+    const x  = c2 * (1 - Math.abs((hh*6) % 2 - 1));
+    const m  = ll - c2/2;
+    let r2,g2,b2;
+    const sec = hh * 6;
+    if      (sec < 1) [r2,g2,b2] = [c2,x,0];
+    else if (sec < 2) [r2,g2,b2] = [x,c2,0];
+    else if (sec < 3) [r2,g2,b2] = [0,c2,x];
+    else if (sec < 4) [r2,g2,b2] = [0,x,c2];
+    else if (sec < 5) [r2,g2,b2] = [x,0,c2];
+    else              [r2,g2,b2] = [c2,0,x];
+    const toHex = v => Math.round((v+m)*255).toString(16).padStart(2,'0');
+    return toHex(r2) + toHex(g2) + toHex(b2);
+  });
+}
+
+function renderNeighbors(colors) {
+  document.getElementById('nbGrid').innerHTML = colors.map(c => {
+    const hex = c.hex.value.replace('#','');
+    const name = c.name.value;
+    const saved = isSaved(hex);
+    return `<div class="nb-chip ${saved?'saved':''}" data-hex="${hex}" title="${name} #${hex}" onclick="selectNbColor('${hex}','${name}')">
+      <div class="nsw" style="background:#${hex}"></div>
+      <div class="nhex">${hex.slice(0,4)}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectNbColor(hex, name) {
+  document.querySelectorAll('.nb-chip').forEach(el => el.classList.remove('active'));
+  const chip = document.querySelector(`.nb-chip[data-hex="${hex}"]`);
+  if (chip) chip.classList.add('active');
+  document.querySelectorAll('.base-chip').forEach(el => el.classList.remove('active'));
+  selectColor(hex, name);
+}
+
+function renderBase() {
+  document.getElementById('baseGrid').innerHTML = BASE_COLORS.map((c,i) =>
+    `<div class="base-chip" data-idx="${i}" onclick="selectBase(${i})" title="${c.name}">
+      <div class="sw" style="background:#${c.hex}"></div>
+      <div class="lbl">${c.name}</div>
+    </div>`
+  ).join('');
+}
+
+// ── SAVED COLORS ──
+function isSaved(hex) { return savedColors.some(c => c.hex.toUpperCase() === hex.toUpperCase().replace('#','')); }
+
+function saveCurrentColor() {
+  const hex = currentColor.replace('#','');
+  if (isSaved(hex)) { showToast('Màu này đã được lưu rồi'); return; }
+  savedColors.unshift({hex, name: currentColorName});
+  if (savedColors.length > 50) savedColors.pop();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedColors));
+  renderSaved();
+  showToast('Đã lưu màu ' + currentColorName);
+}
+
+function removeSaved(hex) {
+  savedColors = savedColors.filter(c => c.hex.toUpperCase() !== hex.toUpperCase());
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedColors));
+  renderSaved();
+}
+
+function clearAllSaved() {
+  savedColors = [];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedColors));
+  renderSaved();
+}
+
+function renderSaved() {
+  const grid = document.getElementById('savedGrid');
+  const count = document.getElementById('savedCount');
+  count.textContent = savedColors.length ? `(${savedColors.length})` : '';
+  if (!savedColors.length) {
+    grid.innerHTML = '<span class="empty-saved">Chưa có màu nào</span>';
+    return;
+  }
+  grid.innerHTML = savedColors.map(c =>
+    `<div class="saved-pill" onclick="selectColor('${c.hex}','${c.name}')" title="${c.name}">
+      <div class="sp-dot" style="background:#${c.hex}"></div>
+      <span class="sp-hex">#${c.hex.slice(0,6)}</span>
+      <span class="sp-del" onclick="event.stopPropagation();removeSaved('${c.hex}')">×</span>
+    </div>`
+  ).join('');
+}
+
+// ── FILE UPLOAD ──
+function onFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const src = ev.target.result;
+    document.getElementById('thumbImg').src = src;
+    document.getElementById('thumbImg').style.display = 'block';
+    document.getElementById('btnProcess').disabled = false;
+    window._imageData = src;
+    // Reset left panel về placeholder khi upload ảnh mới
+    document.getElementById('imgLeft').style.display = 'none';
+    document.getElementById('phLeft').style.display = 'flex';
+    document.getElementById('leftTitle').textContent = 'Ảnh gốc';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── PROCESS ──
+async function processImage() {
+  if (!window._imageData) return;
+  const btn = document.getElementById('btnProcess');
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang xử lý...';
+
+  // Spinner cả 2 bên
+  document.getElementById('phLeft').style.display = 'none';
+  document.getElementById('imgLeft').style.display = 'none';
+  document.getElementById('spinnerLeft').style.display = 'block';
+  document.getElementById('phRight').style.display = 'none';
+  document.getElementById('spinnerRight').style.display = 'block';
+  document.getElementById('coloringCanvas').style.display = 'none';
+
+  try {
+    const res = await fetch(`${API}/api/segment`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        image: window._imageData,
+        scale: parseFloat(document.getElementById('rScale').value),
+        sigma: parseFloat(document.getElementById('rSigma').value),
+        min_size: parseInt(document.getElementById('rMin').value),
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { showToast('Lỗi: ' + data.error); return; }
+
+    // Hiện ảnh phân vùng bên trái
+    document.getElementById('spinnerLeft').style.display = 'none';
+    const imgLeft = document.getElementById('imgLeft');
+    imgLeft.src = data.segmented;
+    imgLeft.style.display = 'block';
+    document.getElementById('leftTitle').textContent = `Ảnh phân vùng (${data.num_regions} vùng)`;
+
+    document.getElementById('spinnerRight').style.display = 'none';
+    document.getElementById('regionInfo').textContent = `${data.num_regions} vùng`;
+    labelMatrix = data.label_matrix;
+    loadColoringPage(data.coloring);
+    document.getElementById('btnDownload').disabled = false;
+    showToast(`✅ Tạo thành công — ${data.num_regions} vùng`);
+  } catch(e) {
+    document.getElementById('spinnerLeft').style.display = 'none';
+    document.getElementById('phLeft').style.display = 'flex';
+    document.getElementById('spinnerRight').style.display = 'none';
+    document.getElementById('phRight').style.display = 'flex';
+    showToast('❌ Không kết nối được backend');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Tạo coloring page';
+  }
+}
+
+// ── CANVAS ──
+function loadColoringPage(src) {
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    coloringImage = img;
+    // Lưu imageData gốc để eraser khôi phục
+    origImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Build cache pixel theo từng vùng
+    buildRegionCache(origImageData);
+    canvas.style.display = 'block';
+    document.getElementById('phRight').style.display = 'none';
+    saveUndo();
+  };
+  img.src = src;
+}
+
+function setTool(t) {
+  currentTool = t;
+  ['Brush','Eraser'].forEach(id => {
+    document.getElementById('tool'+id).classList.toggle('active', id.toLowerCase()===t);
+  });
+}
+
+canvas.addEventListener('mousedown', e => {
+  const {x, y} = getPos(e);
+  if (labelMatrix && y < labelMatrix.length && x < labelMatrix[0].length) {
+    lockedLabel = labelMatrix[y][x];
+  }
+  isDrawing = true;
+  handleDraw(e);
+});
+canvas.addEventListener('mousemove', e => { if (isDrawing) handleDraw(e); });
+canvas.addEventListener('mouseup',   () => { if (isDrawing) { isDrawing = false; lockedLabel = -1; saveUndo(); } });
+canvas.addEventListener('mouseleave',() => { if (isDrawing) { isDrawing = false; lockedLabel = -1; saveUndo(); } });
+
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: Math.round((e.clientX - r.left) * canvas.width  / r.width),
+    y: Math.round((e.clientY - r.top)  * canvas.height / r.height),
+  };
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+}
+
+function isBlackPixel(data, pi) {
+  return data[pi] < 40 && data[pi+1] < 40 && data[pi+2] < 40;
+}
+
+// Cache: regionPixels[label] = Int32Array danh sách pixel index (không phải viền đen)
+let regionPixels = null;
+let lockedLabel = -1;   // vùng đang được lock khi mousedown
+let origImageData = null; // imageData của coloring page gốc (để eraser khôi phục)
+
+function buildRegionCache(imageData) {
+  if (!labelMatrix) return;
+  const w = canvas.width, h = canvas.height;
+  const data = imageData.data;
+
+  // Đếm size từng vùng trước
+  const counts = {};
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const lbl = labelMatrix[y][x];
+      const pi = (y * w + x) * 4;
+      if (isBlackPixel(data, pi)) continue;
+      counts[lbl] = (counts[lbl] || 0) + 1;
+    }
+  }
+
+  // Tạo mảng cho từng vùng
+  regionPixels = {};
+  const ptrs = {};
+  for (const lbl in counts) {
+    regionPixels[lbl] = new Int32Array(counts[lbl]);
+    ptrs[lbl] = 0;
+  }
+
+  // Điền pixel index vào mảng
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const lbl = labelMatrix[y][x];
+      const pi = (y * w + x) * 4;
+      if (isBlackPixel(data, pi)) continue;
+      regionPixels[lbl][ptrs[lbl]++] = pi;
+    }
+  }
+}
+
+function paintLockedRegion(fillHex, radius, cx, cy) {
+  if (!regionPixels || lockedLabel < 0) return;
+  const pixels = regionPixels[lockedLabel];
+  if (!pixels) return;
+
+  const fill = hexToRgb(fillHex);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const w = canvas.width;
+  const r2 = radius * radius;
+
+  for (let i = 0; i < pixels.length; i++) {
+    const pi = pixels[i];
+    const idx = pi / 4;
+    const px = idx % w;
+    const py = Math.floor(idx / w);
+    if ((px - cx) * (px - cx) + (py - cy) * (py - cy) > r2) continue;
+    data[pi]   = fill[0];
+    data[pi+1] = fill[1];
+    data[pi+2] = fill[2];
+    data[pi+3] = 255;
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function eraseLockedRegion(radius, cx, cy) {
+  if (!regionPixels || lockedLabel < 0 || !origImageData) return;
+  const pixels = regionPixels[lockedLabel];
+  if (!pixels) return;
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const orig = origImageData.data;
+  const w = canvas.width;
+  const r2 = radius * radius;
+
+  for (let i = 0; i < pixels.length; i++) {
+    const pi = pixels[i];
+    const idx = pi / 4;
+    const px = idx % w;
+    const py = Math.floor(idx / w);
+    if ((px - cx) * (px - cx) + (py - cy) * (py - cy) > r2) continue;
+    data[pi]   = orig[pi];
+    data[pi+1] = orig[pi+1];
+    data[pi+2] = orig[pi+2];
+    data[pi+3] = orig[pi+3];
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function handleDraw(e) {
+  const {x, y} = getPos(e);
+  const size = parseInt(document.getElementById('brushSize').value);
+  if (currentTool === 'brush') {
+    paintLockedRegion(currentColor, size / 2, x, y);
+  } else if (currentTool === 'eraser') {
+    eraseLockedRegion(size / 2, x, y);
+  }
+}
+
+function floodFill(sx, sy, fillHex) {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const w = canvas.width, h = canvas.height;
+  const i0 = (sy * w + sx) * 4;
+  const target = [data[i0], data[i0+1], data[i0+2], data[i0+3]];
+  const fill = hexToRgb(fillHex);
+  if (target.every((v,i) => v === fill[i])) return;
+  const tol = 30;
+  const match = i => Math.abs(data[i]-target[0])<=tol && Math.abs(data[i+1]-target[1])<=tol && Math.abs(data[i+2]-target[2])<=tol;
+  const visited = new Uint8Array(w * h);
+  const stack = [[sx, sy]];
+  while (stack.length) {
+    const [cx, cy] = stack.pop();
+    if (cx<0||cx>=w||cy<0||cy>=h) continue;
+    const idx = cy*w+cx;
+    if (visited[idx]) continue;
+    const pi = idx*4;
+    if (!match(pi)) continue;
+    visited[idx] = 1;
+    data[pi]=fill[0]; data[pi+1]=fill[1]; data[pi+2]=fill[2]; data[pi+3]=255;
+    stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function saveUndo() {
+  undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  if (undoStack.length > 20) undoStack.shift();
+  updateProgress();
+}
+
+function undo() {
+  if (undoStack.length <= 1) { showToast('Không còn gì để hoàn tác'); return; }
+  undoStack.pop();
+  ctx.putImageData(undoStack[undoStack.length-1], 0, 0);
+  updateProgress();
+}
+
+function clearCanvas() {
+  if (!coloringImage) return;
+  ctx.drawImage(coloringImage, 0, 0); saveUndo();
+}
+
+// Đếm số vùng đã được tô (pixel không còn là màu outline gốc)
+function updateProgress() {
+  if (!regionPixels || !origImageData) return;
+
+  // Hiện progress bar
+  document.getElementById('progressWrap').style.display = 'flex';
+  document.getElementById('progressSep').style.display = 'block';
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const cur = imageData.data;
+  const orig = origImageData.data;
+
+  let totalRegions = 0;
+  let coloredRegions = 0;
+
+  for (const lbl in regionPixels) {
+    const pixels = regionPixels[lbl];
+    if (!pixels || pixels.length === 0) continue;
+    totalRegions++;
+
+    // Kiểm tra xem có ít nhất 1 pixel trong vùng đã đổi màu so với gốc
+    let changed = false;
+    // Sample tối đa 20 pixel để kiểm tra nhanh
+    const step = Math.max(1, Math.floor(pixels.length / 20));
+    for (let i = 0; i < pixels.length; i += step) {
+      const pi = pixels[i];
+      if (Math.abs(cur[pi] - orig[pi]) > 10 ||
+          Math.abs(cur[pi+1] - orig[pi+1]) > 10 ||
+          Math.abs(cur[pi+2] - orig[pi+2]) > 10) {
+        changed = true;
+        break;
+      }
+    }
+    if (changed) coloredRegions++;
+  }
+
+  const pct = totalRegions > 0 ? Math.round(coloredRegions / totalRegions * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+
+  // Đổi màu progress khi hoàn thành
+  const bar = document.getElementById('progressBar');
+  if (pct === 100) {
+    bar.style.background = '#4CAF50';
+    document.getElementById('progressPct').style.color = '#4CAF50';
+    showToast('🎉 Bạn đã tô xong toàn bộ!');
+  } else {
+    bar.style.background = 'var(--blue)';
+    document.getElementById('progressPct').style.color = 'var(--blue)';
+  }
+}
+
+function downloadResult() {
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = 'coloring_result.png';
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Đã tải về!');
+  }, 'image/png');
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── RESIZER ──
+(function() {
+  const resizer   = document.getElementById('resizer');
+  const leftPanel = document.getElementById('leftPanel');
+  const rightPanel= document.getElementById('rightPanel');
+  const container = document.getElementById('viewsContainer');
+  let dragging = false, startX = 0, startLeft = 0, startRight = 0;
+
+  resizer.addEventListener('mousedown', e => {
+    dragging = true;
+    startX     = e.clientX;
+    startLeft  = leftPanel.getBoundingClientRect().width;
+    startRight = rightPanel.getBoundingClientRect().width;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const total = startLeft + startRight;
+    const newLeft  = Math.max(100, Math.min(total - 100, startLeft + dx));
+    const newRight = total - newLeft;
+    leftPanel.style.flex  = 'none';
+    leftPanel.style.width = newLeft + 'px';
+    rightPanel.style.flex = 'none';
+    rightPanel.style.width= newRight + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    resizer.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+init();
+</script>
+</body>
+</html>
