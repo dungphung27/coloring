@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi">
-<head>
+<html lang="vi"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="language" content="vi">
 <title>Color by Number</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -603,25 +603,48 @@ function setTool(t) {
   });
 }
 
-canvas.addEventListener('mousedown', e => {
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  // Hỗ trợ cả touch lẫn mouse
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: Math.round((src.clientX - r.left) * canvas.width  / r.width),
+    y: Math.round((src.clientY - r.top)  * canvas.height / r.height),
+  };
+}
+
+function onStart(e) {
+  e.preventDefault();
   const {x, y} = getPos(e);
   if (labelMatrix && y < labelMatrix.length && x < labelMatrix[0].length) {
     lockedLabel = labelMatrix[y][x];
   }
   isDrawing = true;
   handleDraw(e);
-});
-canvas.addEventListener('mousemove', e => { if (isDrawing) handleDraw(e); });
-canvas.addEventListener('mouseup',   () => { if (isDrawing) { isDrawing = false; lockedLabel = -1; saveUndo(); } });
-canvas.addEventListener('mouseleave',() => { if (isDrawing) { isDrawing = false; lockedLabel = -1; saveUndo(); } });
-
-function getPos(e) {
-  const r = canvas.getBoundingClientRect();
-  return {
-    x: Math.round((e.clientX - r.left) * canvas.width  / r.width),
-    y: Math.round((e.clientY - r.top)  * canvas.height / r.height),
-  };
 }
+function onMove(e) {
+  if (!isDrawing) return;
+  e.preventDefault();
+  handleDraw(e);
+}
+function onEnd() {
+  if (!isDrawing) return;
+  isDrawing = false;
+  lockedLabel = -1;
+  saveUndo();
+}
+
+// Mouse
+canvas.addEventListener('mousedown',  onStart);
+canvas.addEventListener('mousemove',  onMove);
+canvas.addEventListener('mouseup',    onEnd);
+canvas.addEventListener('mouseleave', onEnd);
+
+// Touch (iPad / mobile)
+canvas.addEventListener('touchstart',  onStart, { passive: false });
+canvas.addEventListener('touchmove',   onMove,  { passive: false });
+canvas.addEventListener('touchend',    onEnd);
+canvas.addEventListener('touchcancel', onEnd);
 
 function hexToRgb(hex) {
   hex = hex.replace('#','');
@@ -853,23 +876,21 @@ function showToast(msg) {
   const resizer   = document.getElementById('resizer');
   const leftPanel = document.getElementById('leftPanel');
   const rightPanel= document.getElementById('rightPanel');
-  const container = document.getElementById('viewsContainer');
   let dragging = false, startX = 0, startLeft = 0, startRight = 0;
 
-  resizer.addEventListener('mousedown', e => {
+  function startDrag(clientX) {
     dragging = true;
-    startX     = e.clientX;
+    startX     = clientX;
     startLeft  = leftPanel.getBoundingClientRect().width;
     startRight = rightPanel.getBoundingClientRect().width;
     resizer.classList.add('dragging');
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    e.preventDefault();
-  });
+  }
 
-  document.addEventListener('mousemove', e => {
+  function doDrag(clientX) {
     if (!dragging) return;
-    const dx = e.clientX - startX;
+    const dx = clientX - startX;
     const total = startLeft + startRight;
     const newLeft  = Math.max(100, Math.min(total - 100, startLeft + dx));
     const newRight = total - newLeft;
@@ -877,15 +898,25 @@ function showToast(msg) {
     leftPanel.style.width = newLeft + 'px';
     rightPanel.style.flex = 'none';
     rightPanel.style.width= newRight + 'px';
-  });
+  }
 
-  document.addEventListener('mouseup', () => {
+  function endDrag() {
     if (!dragging) return;
     dragging = false;
     resizer.classList.remove('dragging');
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
-  });
+  }
+
+  // Mouse
+  resizer.addEventListener('mousedown', e => { startDrag(e.clientX); e.preventDefault(); });
+  document.addEventListener('mousemove', e => doDrag(e.clientX));
+  document.addEventListener('mouseup', endDrag);
+
+  // Touch
+  resizer.addEventListener('touchstart', e => { startDrag(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove',  e => { if (dragging) { doDrag(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+  document.addEventListener('touchend', endDrag);
 })();
 
 init();
