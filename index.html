@@ -621,13 +621,12 @@ function setTool(t) {
 function getPos(e) {
   const r = canvas.getBoundingClientRect();
   const src = e.touches ? e.touches[0] : e;
-  // Tính tỉ lệ scale giữa canvas thật và kích thước hiển thị CSS
   const scaleX = canvas.width  / r.width;
   const scaleY = canvas.height / r.height;
-  return {
-    x: Math.round((src.clientX - r.left) * scaleX),
-    y: Math.round((src.clientY - r.top)  * scaleY),
-  };
+  const x = Math.round((src.clientX - r.left) * scaleX);
+  const y = Math.round((src.clientY - r.top)  * scaleY);
+  console.log(`touch:(${src.clientX.toFixed(0)},${src.clientY.toFixed(0)}) rect:(${r.left.toFixed(0)},${r.top.toFixed(0)},${r.width.toFixed(0)}x${r.height.toFixed(0)}) canvas:(${canvas.width}x${canvas.height}) scale:(${scaleX.toFixed(2)},${scaleY.toFixed(2)}) → pos:(${x},${y})`);
+  return {x, y};
 }
 
 function onStart(e) {
