@@ -3,15 +3,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="language" content="vi">
-<title>Coloring The World</title>
+<title>Color by Number</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 :root{
   --blue:#1565C0;--blue-lt:#E3F2FD;--blue-mid:#90CAF9;
   --bg:#F0F4FF;--surface:#fff;--border:#DDEEFF;
   --text:#1a1a2e;--muted:#5a7a9a;--radius:10px;
 }
-body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* TOPBAR */
 .topbar{background:var(--blue);padding:0 14px;height:50px;display:flex;align-items:center;gap:12px;flex-shrink:0}
@@ -123,7 +123,8 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .brush-wrap input{width:60px;accent-color:var(--blue)}
 
 /* MAIN CANVAS AREA */
-.views{display:flex;flex:1;overflow:hidden;min-height:0;min-width:0}
+.views{display:flex;flex:1;overflow:hidden;min-height:0;min-width:0;user-select:none;-webkit-user-select:none}
+#coloringCanvas{max-width:100%;max-height:100%;cursor:crosshair;display:none;border-radius:6px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .resizer{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative;display:flex;align-items:center;justify-content:center}
 .resizer:hover,.resizer.dragging{background:var(--blue-mid)}
 .resizer::after{content:'';position:absolute;width:1px;height:32px;background:var(--muted);border-radius:2px;opacity:.4}
@@ -140,7 +141,6 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:12px;text-align:center;opacity:.5}
 .placeholder svg{width:40px;height:40px}
 
-#coloringCanvas{max-width:100%;max-height:100%;cursor:crosshair;display:none;border-radius:6px;touch-action:none}
 
 /* LOADING */
 .spinner{width:32px;height:32px;border:3px solid var(--blue-lt);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:none}
@@ -157,7 +157,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 <!-- TOPBAR -->
 <div class="topbar">
   <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
-  <span class="topbar-title">Color by Number</span>
+  <span class="topbar-title">Coloring The World</span>
   <div class="topbar-spacer"></div>
   <button class="topbar-btn" id="btnDownload" disabled onclick="downloadResult()">
     ⬇ Tải về
@@ -977,6 +977,26 @@ function showToast(msg) {
   document.addEventListener('touchmove',  e => { if (dragging) { doDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } }, { passive: false });
   document.addEventListener('touchend', endDrag);
 })();
+
+// ── CHẶN SELECT TEXT / COPY / PASTE / CONTEXT MENU ──
+canvas.addEventListener('selectstart', e => e.preventDefault());
+canvas.addEventListener('dragstart',   e => e.preventDefault());
+
+document.getElementById('leftPanel').addEventListener('contextmenu',  e => e.preventDefault());
+document.getElementById('rightPanel').addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('copy', e => {
+  if (document.activeElement === canvas || isDrawing) e.preventDefault();
+});
+document.addEventListener('paste', e => e.preventDefault());
+document.addEventListener('selectstart', e => {
+  if (isDrawing) e.preventDefault();
+});
+
+// Chặn select text toàn trang khi mousedown trên canvas hoặc resizer
+canvas.addEventListener('mousedown', e => { document.body.style.userSelect = 'none'; });
+document.addEventListener('mouseup', () => { document.body.style.userSelect = ''; });
 
 init();
 </script>
