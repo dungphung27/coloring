@@ -614,6 +614,7 @@ function getPos(e) {
 }
 
 function onStart(e) {
+  if (e.touches && e.touches.length >= 2) return; // đang pinch zoom → bỏ qua
   e.preventDefault();
   const {x, y} = getPos(e);
   if (labelMatrix && y < labelMatrix.length && x < labelMatrix[0].length) {
@@ -624,6 +625,13 @@ function onStart(e) {
 }
 function onMove(e) {
   if (!isDrawing) return;
+  if (e.touches && e.touches.length >= 2) {
+    // Người dùng thêm ngón → dừng vẽ, coi như mouseup
+    isDrawing = false;
+    lockedLabel = -1;
+    saveUndo();
+    return;
+  }
   e.preventDefault();
   handleDraw(e);
 }
