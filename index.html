@@ -22,7 +22,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);he
 .topbar-btn:disabled{opacity:.4;cursor:default}
 
 /* LAYOUT — ngang mặc định */
-.body{display:flex;flex:1;overflow:hidden;flex-direction:row}
+.body{display:flex;flex:1;overflow:hidden;flex-direction:row;min-width:0;min-height:0}
 
 /* SIDEBAR */
 .sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
@@ -30,15 +30,28 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);he
 
 /* Portrait / mobile: sidebar chuyển lên trên, views xếp dọc */
 @media (orientation: portrait), (max-width: 700px) {
-  .body{flex-direction:column}
-  .sidebar{width:100%;height:auto;max-height:42vh;border-right:none;border-bottom:1px solid var(--border);flex-direction:row;flex-wrap:wrap;overflow-y:auto}
-  .sb-section{flex:1;min-width:160px;border-bottom:none;border-right:1px solid var(--border)}
-  .right-panel-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
-  .views{flex-direction:column !important}
-  .resizer{width:100% !important;height:5px !important;cursor:row-resize !important}
-  #leftPanel,#rightPanel{width:100% !important;flex:1 !important;min-height:80px}
+  .body{flex-direction:column;height:100%}
+  .sidebar{
+    width:100%;flex-shrink:0;
+    border-right:none;border-bottom:1px solid var(--border);
+    flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
+  }
+  .sb-section{
+    flex:0 0 auto;min-width:180px;max-width:260px;
+    border-bottom:none;border-right:1px solid var(--border);
+    padding:10px 12px;overflow-y:auto;max-height:220px;
+  }
+  .sb-section:last-child{border-right:none}
+  .right-panel-wrap{
+    flex:1 !important;min-height:0 !important;width:auto !important;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .views{flex-direction:column !important;flex:1 !important;min-height:0;overflow:hidden}
+  .resizer{width:100% !important;height:5px !important;cursor:row-resize !important;flex-shrink:0 !important}
+  #leftPanel,#rightPanel{width:100% !important;flex:1 !important;min-height:60px !important;height:0 !important}
 }
 .sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--blue);margin-bottom:10px}
+.right-panel-wrap{flex:1;min-height:0;min-width:0;width:0;display:flex;flex-direction:column;overflow:hidden}
 
 /* UPLOAD */
 .upload-zone{border:2px dashed var(--blue-mid);border-radius:var(--radius);background:var(--blue-lt);padding:16px 10px;text-align:center;cursor:pointer;transition:background .15s}
@@ -110,7 +123,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .brush-wrap input{width:60px;accent-color:var(--blue)}
 
 /* MAIN CANVAS AREA */
-.views{display:flex;flex:1;overflow:hidden;min-height:0}
+.views{display:flex;flex:1;overflow:hidden;min-height:0;min-width:0}
 .resizer{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative;display:flex;align-items:center;justify-content:center}
 .resizer:hover,.resizer.dragging{background:var(--blue-mid)}
 .resizer::after{content:'';position:absolute;width:1px;height:32px;background:var(--muted);border-radius:2px;opacity:.4}
@@ -123,11 +136,11 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .view-header{padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:7px;flex-shrink:0;background:var(--surface)}
 .view-header .dot{width:8px;height:8px;border-radius:50%;background:var(--blue-mid)}
 .view-body{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg);overflow:hidden;padding:6px;min-height:0;min-width:0}
-.view-body img{width:100%;height:100%;border-radius:6px;object-fit:contain;display:block}
+.view-body img{max-width:100%;max-height:100%;border-radius:6px;object-fit:contain;display:block}
 .placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:12px;text-align:center;opacity:.5}
 .placeholder svg{width:40px;height:40px}
 
-#coloringCanvas{width:100%;height:100%;cursor:crosshair;display:none;border-radius:6px;object-fit:contain;touch-action:none}
+#coloringCanvas{max-width:100%;max-height:100%;cursor:crosshair;display:none;border-radius:6px;touch-action:none}
 
 /* LOADING */
 .spinner{width:32px;height:32px;border:3px solid var(--blue-lt);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:none}
@@ -144,7 +157,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 <!-- TOPBAR -->
 <div class="topbar">
   <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
-  <span class="topbar-title">Coloring The World</span>
+  <span class="topbar-title">Color by Number</span>
   <div class="topbar-spacer"></div>
   <button class="topbar-btn" id="btnDownload" disabled onclick="downloadResult()">
     ⬇ Tải về
@@ -230,7 +243,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
   </div>
 
   <!-- RIGHT PANEL -->
-  <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0">
+  <div class="right-panel-wrap">
 
     <!-- Toolbar -->
     <div class="toolbar">
@@ -621,33 +634,11 @@ function setTool(t) {
 function getPos(e) {
   const r = canvas.getBoundingClientRect();
   const src = e.touches ? e.touches[0] : e;
-
-  // object-fit: contain → ảnh thật nằm trong r, có thể có letterbox
-  // Tính kích thước ảnh thật được render bên trong rect
-  const canvasRatio = canvas.width / canvas.height;
-  const rectRatio   = r.width / r.height;
-
-  let imgW, imgH, offsetX, offsetY;
-  if (canvasRatio > rectRatio) {
-    // Letterbox trên/dưới
-    imgW = r.width;
-    imgH = r.width / canvasRatio;
-    offsetX = 0;
-    offsetY = (r.height - imgH) / 2;
-  } else {
-    // Letterbox trái/phải
-    imgH = r.height;
-    imgW = r.height * canvasRatio;
-    offsetX = (r.width - imgW) / 2;
-    offsetY = 0;
-  }
-
-  const x = Math.round((src.clientX - r.left - offsetX) * (canvas.width  / imgW));
-  const y = Math.round((src.clientY - r.top  - offsetY) * (canvas.height / imgH));
-
+  const scaleX = canvas.width  / r.width;
+  const scaleY = canvas.height / r.height;
   return {
-    x: Math.max(0, Math.min(canvas.width  - 1, x)),
-    y: Math.max(0, Math.min(canvas.height - 1, y)),
+    x: Math.max(0, Math.min(canvas.width  - 1, Math.round((src.clientX - r.left) * scaleX))),
+    y: Math.max(0, Math.min(canvas.height - 1, Math.round((src.clientY - r.top)  * scaleY))),
   };
 }
 
@@ -968,10 +959,13 @@ function showToast(msg) {
   }
 
   // Reset khi xoay màn hình
-  window.addEventListener('orientationchange', () => {
+  window.addEventListener('orientationchange', resetPanels);
+  window.addEventListener('resize', resetPanels);
+
+  function resetPanels() {
     leftPanel.style.flex = '1'; leftPanel.style.width = ''; leftPanel.style.height = '';
     rightPanel.style.flex = '1'; rightPanel.style.width = ''; rightPanel.style.height = '';
-  });
+  }
 
   // Mouse
   resizer.addEventListener('mousedown', e => { startDrag(e.clientX, e.clientY); e.preventDefault(); });
