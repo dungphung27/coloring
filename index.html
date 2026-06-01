@@ -14,19 +14,30 @@
 body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* TOPBAR */
-.topbar{background:var(--blue);padding:0 20px;height:50px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.topbar{background:var(--blue);padding:0 14px;height:50px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .topbar-title{color:#fff;font-size:16px;font-weight:700;letter-spacing:.3px}
 .topbar-spacer{flex:1}
 .topbar-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:12px;padding:5px 14px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s}
 .topbar-btn:hover{background:rgba(255,255,255,.28)}
 .topbar-btn:disabled{opacity:.4;cursor:default}
 
-/* LAYOUT */
-.body{display:flex;flex:1;overflow:hidden}
+/* LAYOUT — ngang mặc định */
+.body{display:flex;flex:1;overflow:hidden;flex-direction:row}
 
 /* SIDEBAR */
 .sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
 .sb-section{padding:14px 14px 10px;border-bottom:1px solid var(--border)}
+
+/* Portrait / mobile: sidebar chuyển lên trên, views xếp dọc */
+@media (orientation: portrait), (max-width: 700px) {
+  .body{flex-direction:column}
+  .sidebar{width:100%;height:auto;max-height:42vh;border-right:none;border-bottom:1px solid var(--border);flex-direction:row;flex-wrap:wrap;overflow-y:auto}
+  .sb-section{flex:1;min-width:160px;border-bottom:none;border-right:1px solid var(--border)}
+  .right-panel-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
+  .views{flex-direction:column !important}
+  .resizer{width:100% !important;height:5px !important;cursor:row-resize !important}
+  #leftPanel,#rightPanel{width:100% !important;flex:1 !important;min-height:80px}
+}
 .sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--blue);margin-bottom:10px}
 
 /* UPLOAD */
@@ -103,16 +114,20 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .resizer{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative;display:flex;align-items:center;justify-content:center}
 .resizer:hover,.resizer.dragging{background:var(--blue-mid)}
 .resizer::after{content:'';position:absolute;width:1px;height:32px;background:var(--muted);border-radius:2px;opacity:.4}
-.view-card{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;min-height:0}
+@media (orientation:portrait),(max-width:700px){
+  .resizer{width:100%;height:5px;cursor:row-resize}
+  .resizer::after{width:32px;height:1px}
+}
+.view-card{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;min-height:0;min-width:0}
 .view-card:last-child{border-right:none}
 .view-header{padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:7px;flex-shrink:0;background:var(--surface)}
 .view-header .dot{width:8px;height:8px;border-radius:50%;background:var(--blue-mid)}
-.view-body{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg);overflow:hidden;padding:12px;min-height:0}
-.view-body img{max-width:100%;max-height:100%;border-radius:6px;object-fit:contain;display:block}
+.view-body{flex:1;display:flex;align-items:center;justify-content:center;background:var(--bg);overflow:hidden;padding:6px;min-height:0;min-width:0}
+.view-body img{width:100%;height:100%;border-radius:6px;object-fit:contain;display:block}
 .placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:12px;text-align:center;opacity:.5}
 .placeholder svg{width:40px;height:40px}
 
-#coloringCanvas{max-width:100%;max-height:100%;cursor:crosshair;display:none;border-radius:6px}
+#coloringCanvas{width:100%;height:100%;cursor:crosshair;display:none;border-radius:6px;object-fit:contain}
 
 /* LOADING */
 .spinner{width:32px;height:32px;border:3px solid var(--blue-lt);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:none}
@@ -884,28 +899,41 @@ function showToast(msg) {
   const resizer   = document.getElementById('resizer');
   const leftPanel = document.getElementById('leftPanel');
   const rightPanel= document.getElementById('rightPanel');
-  let dragging = false, startX = 0, startLeft = 0, startRight = 0;
+  let dragging = false, startPos = 0, startA = 0, startB = 0;
 
-  function startDrag(clientX) {
+  function isPortrait() {
+    return window.matchMedia('(orientation: portrait)').matches || window.innerWidth <= 700;
+  }
+
+  function startDrag(clientX, clientY) {
     dragging = true;
-    startX     = clientX;
-    startLeft  = leftPanel.getBoundingClientRect().width;
-    startRight = rightPanel.getBoundingClientRect().width;
+    if (isPortrait()) {
+      startPos   = clientY;
+      startA     = leftPanel.getBoundingClientRect().height;
+      startB     = rightPanel.getBoundingClientRect().height;
+    } else {
+      startPos   = clientX;
+      startA     = leftPanel.getBoundingClientRect().width;
+      startB     = rightPanel.getBoundingClientRect().width;
+    }
     resizer.classList.add('dragging');
-    document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }
 
-  function doDrag(clientX) {
+  function doDrag(clientX, clientY) {
     if (!dragging) return;
-    const dx = clientX - startX;
-    const total = startLeft + startRight;
-    const newLeft  = Math.max(100, Math.min(total - 100, startLeft + dx));
-    const newRight = total - newLeft;
-    leftPanel.style.flex  = 'none';
-    leftPanel.style.width = newLeft + 'px';
-    rightPanel.style.flex = 'none';
-    rightPanel.style.width= newRight + 'px';
+    const pos = isPortrait() ? clientY : clientX;
+    const dx = pos - startPos;
+    const total = startA + startB;
+    const newA = Math.max(60, Math.min(total - 60, startA + dx));
+    const newB = total - newA;
+    if (isPortrait()) {
+      leftPanel.style.flex = 'none'; leftPanel.style.height = newA + 'px'; leftPanel.style.width = '';
+      rightPanel.style.flex = 'none'; rightPanel.style.height = newB + 'px'; rightPanel.style.width = '';
+    } else {
+      leftPanel.style.flex = 'none'; leftPanel.style.width = newA + 'px'; leftPanel.style.height = '';
+      rightPanel.style.flex = 'none'; rightPanel.style.width = newB + 'px'; rightPanel.style.height = '';
+    }
   }
 
   function endDrag() {
@@ -916,14 +944,20 @@ function showToast(msg) {
     document.body.style.userSelect = '';
   }
 
+  // Reset khi xoay màn hình
+  window.addEventListener('orientationchange', () => {
+    leftPanel.style.flex = '1'; leftPanel.style.width = ''; leftPanel.style.height = '';
+    rightPanel.style.flex = '1'; rightPanel.style.width = ''; rightPanel.style.height = '';
+  });
+
   // Mouse
-  resizer.addEventListener('mousedown', e => { startDrag(e.clientX); e.preventDefault(); });
-  document.addEventListener('mousemove', e => doDrag(e.clientX));
+  resizer.addEventListener('mousedown', e => { startDrag(e.clientX, e.clientY); e.preventDefault(); });
+  document.addEventListener('mousemove', e => doDrag(e.clientX, e.clientY));
   document.addEventListener('mouseup', endDrag);
 
   // Touch
-  resizer.addEventListener('touchstart', e => { startDrag(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
-  document.addEventListener('touchmove',  e => { if (dragging) { doDrag(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+  resizer.addEventListener('touchstart', e => { startDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove',  e => { if (dragging) { doDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } }, { passive: false });
   document.addEventListener('touchend', endDrag);
 })();
 
