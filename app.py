@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 import base64
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from scipy.ndimage import binary_erosion
 from skimage.color import label2rgb
 
@@ -26,8 +26,6 @@ def add_cors(response):
     return response
 
 MAX_SIZE = 500
-MIN_PIXELS_FOR_NUMBER = 300
-FONT_SIZE = 13
 
 
 def decode_image(b64_string):
@@ -67,25 +65,9 @@ def build_coloring_page(labels):
     edge_array = np.array(outline_img)
     edge_array[full_edge] = [0, 0, 0]
     outline_img = Image.fromarray(edge_array)
-    draw = ImageDraw.Draw(outline_img)
-
-    try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", FONT_SIZE)
-    except Exception:
-        font = ImageFont.load_default()
 
     unique_labels = np.unique(labels)
     lbl_to_number = {lbl: i + 1 for i, lbl in enumerate(unique_labels)}
-
-    for lbl in unique_labels:
-        mask = (labels == lbl)
-        if mask.sum() < MIN_PIXELS_FOR_NUMBER:
-            continue
-        ys, xs = np.where(mask)
-        cx, cy = int(xs.mean()), int(ys.mean())
-        number = str(lbl_to_number[lbl])
-        draw.rectangle([cx - 6, cy - 7, cx + 6 * len(number), cy + 8], fill="white")
-        draw.text((cx - 5, cy - 6), number, fill=(40, 40, 40), font=font)
 
     return outline_img, lbl_to_number
 
@@ -108,6 +90,10 @@ def build_segmented_image(labels, image):
 
     return Image.fromarray(seg_uint8), palette
 
+
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
 
 @app.route("/")
 def index():
