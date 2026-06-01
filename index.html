@@ -621,12 +621,34 @@ function setTool(t) {
 function getPos(e) {
   const r = canvas.getBoundingClientRect();
   const src = e.touches ? e.touches[0] : e;
-  const scaleX = canvas.width  / r.width;
-  const scaleY = canvas.height / r.height;
-  const x = Math.round((src.clientX - r.left) * scaleX);
-  const y = Math.round((src.clientY - r.top)  * scaleY);
-  console.log(`touch:(${src.clientX.toFixed(0)},${src.clientY.toFixed(0)}) rect:(${r.left.toFixed(0)},${r.top.toFixed(0)},${r.width.toFixed(0)}x${r.height.toFixed(0)}) canvas:(${canvas.width}x${canvas.height}) scale:(${scaleX.toFixed(2)},${scaleY.toFixed(2)}) → pos:(${x},${y})`);
-  return {x, y};
+
+  // object-fit: contain → ảnh thật nằm trong r, có thể có letterbox
+  // Tính kích thước ảnh thật được render bên trong rect
+  const canvasRatio = canvas.width / canvas.height;
+  const rectRatio   = r.width / r.height;
+
+  let imgW, imgH, offsetX, offsetY;
+  if (canvasRatio > rectRatio) {
+    // Letterbox trên/dưới
+    imgW = r.width;
+    imgH = r.width / canvasRatio;
+    offsetX = 0;
+    offsetY = (r.height - imgH) / 2;
+  } else {
+    // Letterbox trái/phải
+    imgH = r.height;
+    imgW = r.height * canvasRatio;
+    offsetX = (r.width - imgW) / 2;
+    offsetY = 0;
+  }
+
+  const x = Math.round((src.clientX - r.left - offsetX) * (canvas.width  / imgW));
+  const y = Math.round((src.clientY - r.top  - offsetY) * (canvas.height / imgH));
+
+  return {
+    x: Math.max(0, Math.min(canvas.width  - 1, x)),
+    y: Math.max(0, Math.min(canvas.height - 1, y)),
+  };
 }
 
 function onStart(e) {
